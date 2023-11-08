@@ -24,7 +24,7 @@ router.put('/:userID/favourites/:adID', requireSignin, usersController.addSavedA
 router.delete('/delete/:userID',
     requireSignin,
     hasAuthorization,
-    usersController.deleteAccount, // This should be a method that handles account deletion
+    usersController.disableAccount, // This should be a method that handles account deletion
 );
 
 // List all ads posted by a specific user
