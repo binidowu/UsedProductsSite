@@ -1,118 +1,91 @@
-let UserModel = require('../models/users');
+const User = require("../models/user");
 
-module.exports.register = async (req, res, next) => {
+// Create a new user
+exports.createUser = async (req, res, next) => {
+  try {
+    console.log("creating");
+    await User.create(req.body);
+    res.status(201).json({
+      success: true,
+      message: "User created successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    try {
-        let newUser = new UserModel(req.body);
+// Get a user by their ID
+exports.getUserById = async (req, res, next) => {
+  try {
+    req.user = await User.findOne({ _id: req.params.userID }, "-hashedPassword");
+    if (!req.user) throw new Error("User not found");
+    next();
+  } catch (error) {
+    next(error);
+  }
+};
 
-        let result = await UserModel.create(newUser);
-        res.json(
-            {
-                success: true,
-                message: "User registeration successfull."
-            });
-    } catch (error) {
-        console.log(error);
-        next(error);
-    }
-}
-module.exports.signin = async (req, res, next) => {
+// Update a user
+exports.updateUser = async (req, res, next) => {
+  const updates = Object.keys(req.body);
+  const allowedUpdates = ["firstName", "lastName", "phone", "address", "profilePicture", "bio"];
+  const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
 
-    try {
+  if (!isValidOperation) {
+    res.status(400).json({
+      success: false,
+      message: "Invalid updates!",
+    });
+  }
 
-    } catch (error) {
-        console.log(error);
-        next(error);
-    }
-}
-module.exports.account = async (req, res, next) => {
+  try {
+    const userId = req.params.userID;
+    const updateData = {
+      ...req.body,
+      updatedAt: new Date(),
+    };
 
-    try {
+    // Find the document with the given _id and update it
+    let updatedUser = await User.findOneAndUpdate(
+      { _id: userId },
+      { $set: updateData },
+      { new: true, runValidators: true } // return the updated document instead of the original and run schema validators
+    );
+    if (!updatedUser) throw new Error("User not updated, are you sure it exists?");
 
-    } catch (error) {
-        console.log(error);
-        next(error);
-    }
-}
-module.exports.updateAccount = async (req, res, next) => {
+    res.status(200).json({
+      success: true,
+      message: "User updated successfully",
+      data: updatedUser,
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-    try {
-        let userId = req.params.userID;
-        let updatedUser = UserModel(req.body);
-        updatedUser._id = userId;
+// Delete a user
+exports.deleteUser = async (req, res, next) => {
+  try {
+    const user = await User.findByIdAndDelete(req.user._id);
+    console.log(user);
+    if (!user) throw new Error("User not deleted, are you sure it exists?");
+    res.status(200).json({
+      success: true,
+      message: "User deleted successfully",
+    });
+  } catch (error) {
+    next(error);
+  }
+};
 
-        let result = await UserModel.updateOne({ _id: userId }, updatedUser);
-        console.log(result);
-        if (result.modifiedCount === true) {
-            res.json(
-                {
-                    success: true,
-                    message: "User detail updated successfully."
-                }
-            );
-        }
-        else {
-            throw new Error('User detail not updated.')
-        }
-    } catch (error) {
-        console.log(error);
-        next(error)}
-}
-module.exports.SavedAd = async (req, res, next) => {
-
-    try {
-        let addedAd = new UserModel(req.body);
-        let userId = req.params.userID;
-        let add = await UserModel({addedAd, savedBy: userId});
-        console.log(add);
-        res.json(
-            {
-                success: true,
-                message: "Ad saved successfully.",
-            }
-        );
-
-    } catch (error) {
-        console.log(error);
-        next(error);
-    }
-}
-module.exports.addSavedAd = async (req, res, next) => {
-
-    try {
-
-    } catch (error) {
-        console.log(error);
-        next(error);
-    }
-}
-module.exports.userAds = async (req, res, next) => {
-
-    try {
-
-    } catch (error) {
-        console.log(error);
-        next(error);
-    }
-}
-module.exports.disableAccount = async (req, res, next) => {
-    try {
-        let userId = req.params.userID;
-
-        let result = await UserModel.updateOne(
-            { _id: userId },     { $set: { isDisabled: true } }
-        );
-
-        if (result.nModified === true) {
-            res.json({
-                success: true,
-                message: "User account disabled successfully."
-            });
-        } else {
-            throw new Error('User account not disabled.');
-        }
-    } catch (error) {
-        console.log(error);
-        next(error);
-    }
-}
+//Has Authorization
+exports.hasAuthorization = (req, res, next) => {
+  const authorized = req.auth && req.user && req.auth.id == req.user._id.toString();
+  if (!authorized) {
+    res.status(403).json({
+      success: false,
+      message: "User is not authorized to perform this action",
+    });
+  }
+  next();
+};
