@@ -1,29 +1,37 @@
-let users = require("../models/users");
+let User = require("../models/user");
 let config = require("../../config/config");
 let jwt = require("jsonwebtoken");
 let { expressjwt } = require("express-jwt");
 
 module.exports.signin = async function (req, res, next) {
   try {
-    let users = await users.findOne({ email: req.body.email });
-    if (!users) throw new Error("users not found.");
-    if (!users.authenticate(req.body.password)) throw new Error("Email and/or password don't match.");
+    let user = await User.findOne({ email: req.body.email });
+    if (!user) throw new Error("users not found.");
+    if (!user.authenticate(req.body.password)) throw new Error("Email and/or password don't match.");
 
     let payload = {
-      id: users._id,
-      usersname: users.usersname,
+      id: user._id,
+      username: user.username,
     };
 
     // Generates the token
     let token = jwt.sign(payload, config.SECRETKEY, {
       algorithm: "HS512",
-      expiresIn: "60min",
+      expiresIn: "1d",
     });
 
-    // Sends the token in the body of the response to the client.
+    // convert the Mongoose document into a plain JavaScript object
+    const userObject = user.toObject();
+    //Extacting the user details that wouldnt be sent to the client.
+    const { hashedPassword, updatedAt, ...userDetails } = userObject;
+
+    // Sends the token in the body of the response to the client along with the user details.
     res.json({
       success: true,
       token: token,
+      message: "users logged in successfully",
+      addInfo: "save the token in the client side (cookies) and send it in the header for all requests that require authentication",
+      user: userDetails,
     });
   } catch (error) {
     console.log(error);
@@ -35,18 +43,5 @@ module.exports.signin = async function (req, res, next) {
 module.exports.requireSignin = expressjwt({
   secret: config.SECRETKEY,
   algorithms: ["HS512"],
-  usersProperty: "auth",
+  userProperty: "auth", //corrected property name
 });
-
-module.exports.hasAuthorization = async function (req, res, next) {
-  console.log("Payload", req.auth);
-  let authorized = req.auth && req.users && req.auth.usersname == req.users.usersname;
-
-  if (!authorized) {
-    return res.status("403").json({
-      success: false,
-      message: "users not authorized",
-    });
-  }
-  next();
-};

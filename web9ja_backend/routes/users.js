@@ -1,33 +1,23 @@
-const { requireSignin, hasAuthorization } = require('../controllers/auth');
-let express = require('express');
+let express = require("express");
 let router = express.Router();
 
-let usersController = require('../controllers/users');
+//import the controllers
+let userController = require("../controllers/users");
+let auth = require("../controllers/auth");
 
-router.post('/register', usersController.register);
-router.post('/signin', usersController.signin);
-router.get('/:userID', usersController.account);
+//To register users
+router.post("/register", userController.createUser);
+//To sign in users...after signing in, the client is given a token that is used to access protected routes and also the user detalils are sent back to the client.
+router.post("/login", auth.signin);
 
-router.put('/update/:userID',
-    requireSignin,
-    hasAuthorization,
-    usersController.updateAccount,
-);
+//A middle ware to get user id and fetch the user from the database and attach it to the req object that will be used by the next middle ware.
+router.param("userID", userController.getUserById);
 
-// View a user's list of saved ads
-router.get('/:userID/favourites', requireSignin, usersController.SavedAd);
+//To update a user, the requireSignIn automatically gets the token "access_token" property. and verifies it. if truthy, it retutns the payload(user id and username) in the req.auth property.
+//The hasAuthorization middle ware checks if the user id in the req.auth property is the same as the user id in the req.user property. if truthy, it allows the user to update the user details.
+router.put("/update/:userID", auth.requireSignin, userController.hasAuthorization, userController.updateUser);
 
-// Add an ad to a user's saved
-router.put('/:userID/favourites/:adID', requireSignin, usersController.addSavedAd);
-
-// Delete a user account
-router.delete('/delete/:userID',
-    requireSignin,
-    hasAuthorization,
-    usersController.disableAccount, // This should be a method that handles account deletion
-);
-
-// List all ads posted by a specific user
-router.get('/:userID/ads', requireSignin, usersController.userAds);
+// To delete a user account, we perform the same checks as the update route before deleting the user account.
+router.delete("/delete/:userID", auth.requireSignin, userController.hasAuthorization, userController.deleteUser);
 
 module.exports = router;
