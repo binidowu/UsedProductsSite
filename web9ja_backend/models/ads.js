@@ -3,14 +3,14 @@ const mongoose = require("mongoose");
 // Question Schema
 const questionSchema = new mongoose.Schema({
   questionText: { type: String, required: true },
-  askedBy: { type: Schema.Types.ObjectId, ref: "User", required: false },
+  askedBy: { type: mongoose.Schema.Types.ObjectId, ref: "User", required: false },
   answerText: { type: String, default: "" },
   createdAt: { type: Date, default: Date.now },
 });
 
 const adSchema = new mongoose.Schema({
   userId: {
-    type: Schema.Types.ObjectId,
+    type: mongoose.Schema.Types.ObjectId,
     ref: "User",
     required: true,
   },
