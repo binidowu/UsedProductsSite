@@ -3,7 +3,6 @@ const User = require("../models/user");
 // Create a new user
 exports.createUser = async (req, res, next) => {
   try {
-    console.log("creating");
     await User.create(req.body);
     res.status(201).json({
       success: true,
