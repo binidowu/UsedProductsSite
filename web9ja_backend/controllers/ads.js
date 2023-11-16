@@ -1,28 +1,58 @@
-let adsModel = require('../models/ads');
+let Ad = require('../models/ads');
 
-// View all active ads
-module.exports.viewAds = async (req, res, next) => {
-    try {
 
-    } catch (error) {
-        console.log(error);
-        next(error);
-    }
-}
-
-// Post a new ad
+// Create a new ad
 module.exports.createAd = async (req, res, next) => {
     try {
+        const userId = req.auth.id
+        const adDetails = { ...req.body, userId };
+        const newAd = await Ad.create(adDetails);
 
+        res.status(201).json({
+            success: true,
+            message: 'Ad created successfully',
+            data: newAd,
+        })
     } catch (error) {
-        console.log(error);
         next(error);
     }
 }
 
 // Edit an ad
-module.exports.editAd = async (req, res, next) => {
+exports.editAd = async (req, res, next) => {
+    const updates = Object.keys(req.body); // extract property names from the client req
+    const allowedUpdates = ["category", "description", "price", "pictures", "isActive", "endAt", "questions"];
+    const isValidOperation = updates.every((update) => allowedUpdates.includes(update)); // checks if a key updates can be updated
+
+    if (!isValidOperation) {
+        res.status(400).json({
+            success: false,
+            message: "Invalid field for update",
+        });
+    }
+
     try {
+        const adId = req.params.adID;
+        const userId = req.auth.id;
+        const updatedData = { // The updated fields from the frontend
+            ...req.body,
+            updatedAt: new Date(),
+        };
+        console.log('Updating ad with ID:', adId, 'for user ID:', userId);
+        const updatedAd = await Ad.findOneAndUpdate(
+            { _id: adId, userId: userId },
+            { $set: updatedData },
+            { new: true, runValidators: true } // return the updated document instead of the original and run schema validators
+        );
+
+        if (!updatedAd) throw new Error("Ad not updated, are you sure it exists?");
+
+        res.status(200).json({
+            success: true,
+            message: "Ad updated successfully",
+            data: updatedAd,
+        });
+
 
     } catch (error) {
         console.log(error);
@@ -30,12 +60,151 @@ module.exports.editAd = async (req, res, next) => {
     }
 }
 
-// Toggle ad status
-module.exports.adStatus = async (req, res, next) => {
+// View all active ads
+exports.viewAds = async (req, res, next) => {
     try {
+        const ads = await Ad.find({}); // Fetch all ad documents from the database
+
+        // Send the ads back to the client.
+        res.status(200).json({
+            success: true,
+            data: ads
+        });
 
     } catch (error) {
         console.log(error);
         next(error);
+    }
+}
+
+
+// Toggle ad status
+exports.disableAd = async (req, res, next) => {
+    try {
+        const adId = req.params.adID;
+        const userId = req.auth.id;
+
+        const updatedAd = await Ad.findOneAndUpdate(
+            { _id: adId, userId: userId, isActive: true }, // Check that the ad is active when trying to disable it
+            { $set: { isActive: false, updatedAt: new Date() } },
+            { new: true, runValidators: true } // return the updated document instead of the original and run schema validators
+        );
+
+        if (!updatedAd) throw new Error("Ad not disabled, are you sure it exists?");
+
+        // Send the updated ad back to the client.
+        res.status(200).json({
+            success: true,
+            message: "Ad disabled successfully",
+            data: updatedAd
+        });
+
+        // if ad is already disabled ? isActive = true : message = "Ad is already disbaled"
+
+    } catch (error) {
+        console.log(error);
+        next(error);
+    }
+}
+
+exports.isOwner = async (req, res, next) => {
+    try {
+        const ad = await Ad.findById(req.params.adID);
+
+        // Check if the ad exists and if the logged-in user is the owner of the ad
+        if (!ad) {
+            return res.status(404).json({
+                success: false,
+                message: "Ad not found"
+            })
+        } else if (ad.userId.toString() != req.auth.id) { //if(!ad.userId.equals(req.auth.id))
+            return res.status(403).json({
+                success: false,
+                message: "User is not authorized to perform this action"
+            })
+        }
+
+        // if the user is authorized, attach the ad to the req object and proceed
+        req.ad = ad;
+        next();
+    } catch (error) {
+        next(error);
+    }
+}
+
+
+// Questions and responses
+exports.askQuestion = async (req, res, next) => {
+    try {
+        const adId = req.params.adID;
+        const questionText = req.body.questionText;
+        const askedBy = req.body.askedBy;
+
+        // Check if the ad is active
+        const ad = await Ad.findOne({ _id: adId, isActive: true });
+
+        if (!ad) throw new Error("Ad is no longer active or not found");
+
+        // Create a new question object
+        const question = {
+            questionText: questionText,
+            askedBy: askedBy || undefined // If user is anonymous it'll be undefined
+        }
+
+        // console.log('Ad before pushing question:', ad);
+        // console.log('Type of questions field:', typeof ad.questions);
+        // console.log('Is questions an array:', Array.isArray(ad.questions));
+
+        // Add the new question to the ad's questions array
+        ad.questions.push({
+            questionText: questionText,
+            askedBy: askedBy || undefined
+        });
+
+        //save the changes to the ad
+        const updatedAd = await ad.save();
+
+        // Send the updated ad back to the client, along with the new question
+        res.status(200).json({
+            success: true,
+            message: "Question posted succesfully",
+            ad: updatedAd,
+            question: question
+        });
+
+    } catch (error) {
+        next(error);
+    }
+}
+
+exports.answerQuestion = async (req, res, next) => {
+    try {
+        const adId = req.params.adID;
+        const questionId = req.params.questionID;
+        const userId = req.auth.id;
+        const answerText = req.body.answerText;
+
+        // Fetch the ad, ensure it's active and the user is the owner
+        const ad = await Ad.findOne({ _id: adId, userId: userId, isActive: true });
+
+        if (!ad) throw new error("Ad not found, not active, or user not authorized to answer");
+
+        // Find the question within the ad
+        const question = ad.questions.id(questionId);
+        if (!question) throw new error("Question not found");
+
+        // Set the answer and save the ad
+        question.answerText = answerText;
+        await ad.save();
+
+        res.status(200).json({
+            success: true,
+            message: "Question answered succesfully",
+            ad: ad,
+            question: question
+        })
+
+    } catch (error) {
+        next(error)
     }
 }
