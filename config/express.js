@@ -1,5 +1,4 @@
 let express = require('express');
-let createError = require('http-errors');
 let path = require('path');
 let cookieParser = require('cookie-parser');
 let logger = require('morgan');
