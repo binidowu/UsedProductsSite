@@ -56,6 +56,10 @@ const adSchema = new mongoose.Schema({
     type: Date,
     default: Date.now,
   },
+  updatedAt: {
+    type: Date,
+    default: Date.now,
+  },
   endAt: {
     type: Date,
   },
@@ -79,7 +83,7 @@ module.exports = mongoose.model("Ad", adSchema);
 }
 -update ad({
     //check if user is logged in
-    //check if user is the owner of the ad
+    //check if user is the owner of the adweb9ja_backend/models/ads.js
     FE{
         user id,
         ad id,
