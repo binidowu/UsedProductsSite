@@ -15,7 +15,7 @@ module.exports.signin = async function (req, res, next) {
     };
 
     // Generates the token
-    let token = jwt.sign(payload, config.SECRETKEY, {
+    let token = jwt.sign(payload, config.SECRET_KEY, {
       algorithm: "HS512",
       expiresIn: "1d",
     });
@@ -41,7 +41,7 @@ module.exports.signin = async function (req, res, next) {
 
 // Check the token validation
 module.exports.requireSignin = expressjwt({
-  secret: config.SECRETKEY,
+  secret: config.SECRET_KEY,
   algorithms: ["HS512"],
   userProperty: "auth", //corrected property name
 });
