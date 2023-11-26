@@ -7,7 +7,8 @@ module.exports.signin = async function (req, res, next) {
   try {
     let user = await User.findOne({ email: req.body.email });
     if (!user) throw new Error("users not found.");
-    if (!user.authenticate(req.body.password)) throw new Error("Email and/or password don't match.");
+    const res = await user.authenticate(req.body.password);
+    if (!res) throw new Error("Email and/or password don't match.");
 
     let payload = {
       id: user._id,
