@@ -3,12 +3,17 @@ let createError = require("http-errors");
 let path = require("path");
 let cookieParser = require("cookie-parser");
 let logger = require("morgan");
+let cors = require("cors")
 
 let indexRouter = require("../web9ja_backend/routes/index");
 let usersRouter = require("../web9ja_backend/routes/users");
 let adsRouter = require("../web9ja_backend/routes/ads");
 
 let app = express();
+
+// Enable cors.
+app.use(cors());
+app.options('*', cors());
 
 app.use(logger("dev"));
 app.use(express.json());

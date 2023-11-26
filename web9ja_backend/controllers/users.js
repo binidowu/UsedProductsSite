@@ -1,8 +1,29 @@
 const User = require("../models/user");
+const Ad = require('../models/ads');
 
 // Create a new user
 exports.createUser = async (req, res, next) => {
   try {
+    const { email, username } = req.body // Fetch email and username values from the req body
+
+    // Check if the email already exists
+    const emailExists = await User.findOne({ email: email.toLowerCase() });
+    if (emailExists) {
+      return res.status(409).json({
+        success: false,
+        message: "Email already in use",
+      });
+    }
+
+    // Check if username already exists
+    const usernameExists = await User.findOne({ username: username.toLowerCase() });
+    if (usernameExists) {
+      return res.status(409).json({
+        succes: false,
+        message: "Username already in use",
+      });
+    }
+
     await User.create(req.body);
     res.status(201).json({
       success: true,
@@ -65,13 +86,29 @@ exports.updateUser = async (req, res, next) => {
 // Delete a user
 exports.deleteUser = async (req, res, next) => {
   try {
-    const user = await User.findByIdAndDelete(req.user._id);
+
+    const userId = req.user._id;
+
+    const user = await User.findByIdAndDelete(userId);
     console.log(user);
-    if (!user) throw new Error("User not deleted, are you sure it exists?");
+    if (!user) {
+      return res.status(404).json({
+        succes: false,
+        message: "User not deleted, are you sure it exists?"
+      });
+    }
+
+    // If the user is found and deleted, then disable all ads associated with the user
+    await Ad.updateMany(
+      { userId: userId, isActive: true }, // Check that the ad is active when trying to disable it
+      { $set: { isActive: false, updatedAt: new Date() } },
+    );
+
     res.status(200).json({
       success: true,
       message: "User deleted successfully",
     });
+
   } catch (error) {
     next(error);
   }

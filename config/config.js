@@ -1,5 +1,7 @@
 // Exporting the MongoDB Atlas connection string
+require('dotenv').config()
+
 module.exports = {
-  SECRETKEY: "Your_Secret_goes_here",
-  ATLASDB: "mongodb+srv://appuser:Olatunji29@cluster0.oaqlcee.mongodb.net/Web9ja?retryWrites=true&w=majority",
+    "SECRET_KEY": process.env.SECRET_KEY,
+    "ATLASDB": process.env.ATLASDB
 };

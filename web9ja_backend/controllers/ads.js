@@ -15,6 +15,15 @@ module.exports.createAd = async (req, res, next) => {
     const adDetails = { ...req.body, userId };
     const newAd = await Ad.create(adDetails);
 
+    // Fetch the user and attach the newly created ad ID to the postedAds array.
+    const user = await User.findById(userId);
+    if (!user) {
+      throw new Error("User not found");
+    }
+    user.postedAds.push(newAd._id);
+    await user.save();
+
+
     res.status(201).json({
       success: true,
       message: "Ad created successfully",
@@ -104,7 +113,7 @@ exports.disableAd = async (req, res, next) => {
       data: updatedAd,
     });
 
-    // if ad is already disabled ? isActive = true : message = "Ad is already disbaled"
+
   } catch (error) {
     console.log(error);
     next(error);
@@ -122,7 +131,6 @@ exports.isOwner = async (req, res, next) => {
         message: "Ad not found",
       });
     } else if (ad.userId.toString() != req.auth.id) {
-      //if(!ad.userId.equals(req.auth.id))
       return res.status(403).json({
         success: false,
         message: "User is not authorized to perform this action",
@@ -154,10 +162,6 @@ exports.askQuestion = async (req, res, next) => {
       questionText: questionText,
       askedBy: askedBy || "", // If user is anonymous it'll be undefined
     };
-
-    // console.log('Ad before pushing question:', ad);
-    // console.log('Type of questions field:', typeof ad.questions);
-    // console.log('Is questions an array:', Array.isArray(ad.questions));
 
     // Add the new question to the ad's questions array
     ad.questions.push({
