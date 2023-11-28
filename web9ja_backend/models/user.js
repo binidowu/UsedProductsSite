@@ -45,10 +45,6 @@ const userSchema = new Schema(
       type: String,
       trim: true,
     },
-    bio: {
-      type: String,
-      trim: true,
-    },
     hashedPassword: {
       type: String,
       required: true,
