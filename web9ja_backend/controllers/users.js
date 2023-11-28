@@ -48,7 +48,7 @@ exports.getUserById = async (req, res, next) => {
 // Update a user
 exports.updateUser = async (req, res, next) => {
   const updates = Object.keys(req.body);
-  const allowedUpdates = ["firstName", "lastName", "phone", "address", "profilePicture", "bio"];
+  const allowedUpdates = ["firstName", "lastName", "phone", "address", "profilePicture"];
   const isValidOperation = updates.every((update) => allowedUpdates.includes(update));
 
   if (!isValidOperation) {
