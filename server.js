@@ -88,3 +88,17 @@ function onListening() {
     : 'port ' + addr.port;
   debug('Listening on ' + bind);
 }
+
+// Connect to the database before setting up the HTTP server.
+db.then(() => {
+  /**
+   * Listen on provided port, on all network interfaces.
+   */
+  server.listen(port);
+  server.on('error', onError);
+  server.on('listening', onListening);
+
+  console.log(`Server is running on port ${port}`);
+}).catch((err) => {
+  console.error("Failed to make database connection!", err);
+});
