@@ -1,18 +1,71 @@
+const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/client-s3");
+const crypto = require("crypto");
 let Ad = require("../models/ads");
 let User = require("../models/user");
 
+/*
+@ayo, please configure the below credetials with environment variables
+dont delete just set the bucket name to the env.variable etc
+e.g
+const myBck = {
+  bucketName: env.BUCKET_NAME,
+  region: env.REGION,
+  accessKeyId: env.ACCESS_KEY_ID,
+  secretAccessKey: env.SECRET_ACCESS_KEY,
+};
+and dont forget to include the credetials on render.
+ */
+const myBck = {
+  bucketName: "web9jaawsbucket",
+  region: "us-east-2",
+  accessKeyId: "AKIAZUAZY3PWDFYDXA6Z",
+  secretAccessKey: "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",
+};
+// setting up the s3 client
+const s3 = new S3Client({
+  region: myBck.region,
+  credentials: {
+    accessKeyId: myBck.accessKeyId,
+    secretAccessKey: myBck.secretAccessKey,
+  },
+});
+// generate a random image name
+const randomImageName = (bytes = 32) => {
+  return crypto.randomBytes(16).toString("hex");
+};
+
 // Create a new ad
 module.exports.createAd = async (req, res, next) => {
+  // create a new array to hold the urls of the uploaded images
+  const pictureUrls = [];
   try {
     const userId = req.auth.id;
-    //@Ayo, we have to check if the user that is signed in is the same as the user that is creating the ad...without this implementation, anyone can create an ad for any user.
     if (userId != req.body.userId) {
       return res.status(403).json({
         success: false,
         message: "User is not authorized to perform this action",
       });
     }
-    const adDetails = { ...req.body, userId };
+
+    // Process and upload files to S3
+
+    // loop through the files and upload them to s3
+    for (const file of req.files) {
+      const imageName = randomImageName(); // Ensure this generates a unique name for each image
+      const command = new PutObjectCommand({
+        Bucket: myBck.bucketName,
+        Key: imageName,
+        Body: file.buffer,
+        ContentType: file.mimetype,
+      });
+      await s3.send(command);
+      const imageUrl = `https://${myBck.bucketName}.s3.${myBck.region}.amazonaws.com/${imageName}`;
+      pictureUrls.push(imageUrl);
+    }
+
+    //Saving the ad and stored images to the database
+    //Create and  Add picture URLs to adDetails
+    const adDetails = { ...req.body, userId, pictures: pictureUrls };
     const newAd = await Ad.create(adDetails);
 
     // Fetch the user and attach the newly created ad ID to the postedAds array.
@@ -23,48 +76,86 @@ module.exports.createAd = async (req, res, next) => {
     user.postedAds.push(newAd._id);
     await user.save();
 
-
     res.status(201).json({
       success: true,
       message: "Ad created successfully",
       data: newAd,
     });
   } catch (error) {
+    // Delete the removed images from S3
+    for (const imageUrl of pictureUrls) {
+      const imageKey = imageUrl.split("/").pop();
+      const deleteCommand = new DeleteObjectCommand({
+        Bucket: myBck.bucketName,
+        Key: imageKey,
+      });
+      await s3.send(deleteCommand);
+    }
+
     next(error);
   }
 };
 
 // Edit an ad
 exports.editAd = async (req, res, next) => {
-  const updates = Object.keys(req.body); // extract property names from the client req
-  //why do we have question and isActive here? we dont want the user to be able to edit these fields.
-  const allowedUpdates = ["category", "description", "price", "pictures", "endAt"];
-  const isValidOperation = updates.every((update) => allowedUpdates.includes(update)); // checks if a key updates can be updated
-
-  if (!isValidOperation) {
-    res.status(400).json({
-      success: false,
-      message: "Invalid field for update",
-    });
-  }
-
   try {
     const adId = req.params.adID;
     const userId = req.auth.id;
-    const updatedData = {
-      // The updated fields from the frontend
-      ...req.body,
-      updatedAt: new Date(),
-    };
-    console.log("Updating ad with ID:", adId, "for user ID:", userId);
-    const updatedAd = await Ad.findOneAndUpdate(
-      { _id: adId, userId: userId },
-      { $set: updatedData },
-      { new: true, runValidators: true } // return the updated document instead of the original and run schema validators
-    );
+    const ad = await Ad.findById(adId);
+
+    if (ad.userId.toString() !== userId) {
+      return res.status(403).json({ success: false, message: "User not authorized to edit this ad" });
+    }
+
+    // Process new images (if any) and upload to S3
+    const newImageUrls = [];
+    if (req.files) {
+      for (const file of req.files) {
+        const imageName = crypto.randomBytes(16).toString("hex");
+        const command = new PutObjectCommand({
+          Bucket: myBck.bucketName,
+          Key: imageName,
+          Body: file.buffer,
+          ContentType: file.mimetype,
+        });
+        await s3.send(command);
+        newImageUrls.push(`https://${myBck.bucketName}.s3.${myBck.region}.amazonaws.com/${imageName}`);
+      }
+    }
+
+    // Identify removed images and delete from S3
+    let retainedImages;
+    if (Array.isArray(req.body.retainedPictures)) {
+      retainedImages = req.body.retainedPictures;
+    } else if (typeof req.body.retainedPictures === "string") {
+      retainedImages = [req.body.retainedPictures];
+    } else {
+      retainedImages = [];
+    }
+
+    // Find the images that were removed
+    const removedImages = ad.pictures.filter((url) => !retainedImages.includes(url));
+    // Delete the removed images from S3
+    for (const imageUrl of removedImages) {
+      const imageKey = imageUrl.split("/").pop();
+      const deleteCommand = new DeleteObjectCommand({
+        Bucket: myBck.bucketName,
+        Key: imageKey,
+      });
+      await s3.send(deleteCommand);
+    }
+
+    // Update ad with new list of images
+    ad.pictures = [...retainedImages, ...newImageUrls];
+    ad.category = req.body.category || ad.category;
+    ad.description = req.body.description || ad.description;
+    ad.price = req.body.price || ad.price;
+    ad.endAt = req.body.endAt || ad.endAt;
+    ad.updatedAt = new Date();
+
+    const updatedAd = await ad.save();
 
     if (!updatedAd) throw new Error("Ad not updated, are you sure it exists?");
-
     res.status(200).json({
       success: true,
       message: "Ad updated successfully",
@@ -112,8 +203,6 @@ exports.disableAd = async (req, res, next) => {
       message: "Ad disabled successfully",
       data: updatedAd,
     });
-
-
   } catch (error) {
     console.log(error);
     next(error);

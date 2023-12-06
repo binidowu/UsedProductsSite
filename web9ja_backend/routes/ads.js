@@ -1,4 +1,5 @@
 const { requireSignin } = require("../controllers/auth");
+const multer = require("multer");
 
 let express = require("express");
 let router = express.Router();
@@ -6,10 +7,11 @@ let router = express.Router();
 let adsController = require("../controllers/ads");
 
 // Post a new ad
-router.post("/", requireSignin, adsController.createAd);
+const upload = multer({ storage: multer.memoryStorage() });
+router.post("/", requireSignin, upload.array("pictures", 5), adsController.createAd);
 
 // Edit a specific ad
-router.put("/:adID", requireSignin, adsController.isOwner, adsController.editAd);
+router.put("/:adID", requireSignin, adsController.isOwner, upload.array("pictures", 5), adsController.editAd);
 
 // View all ads
 router.get("/", adsController.viewAds);

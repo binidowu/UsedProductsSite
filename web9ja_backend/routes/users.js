@@ -1,4 +1,5 @@
 let express = require("express");
+const multer = require("multer");
 let router = express.Router();
 
 //import the controllers
@@ -15,7 +16,8 @@ router.param("userID", userController.getUserById);
 
 //To update a user, the requireSignIn automatically gets the token "access_token" property. and verifies it. if truthy, it retutns the payload(user id and username) in the req.auth property.
 //The hasAuthorization middle ware checks if the user id in the req.auth property is the same as the user id in the req.user property. if truthy, it allows the user to update the user details.
-router.put("/update/:userID", auth.requireSignin, userController.hasAuthorization, userController.updateUser);
+const upload = multer({ storage: multer.memoryStorage() });
+router.put("/update/:userID", auth.requireSignin, userController.hasAuthorization, upload.single("picture"), userController.updateUser);
 
 // To delete a user account, we perform the same checks as the update route before deleting the user account.
 router.delete("/delete/:userID", auth.requireSignin, userController.hasAuthorization, userController.deleteUser);
