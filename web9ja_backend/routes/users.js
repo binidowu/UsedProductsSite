@@ -22,4 +22,7 @@ router.put("/update/:userID", auth.requireSignin, userController.hasAuthorizatio
 // To delete a user account, we perform the same checks as the update route before deleting the user account.
 router.delete("/delete/:userID", auth.requireSignin, userController.hasAuthorization, userController.deleteUser);
 
+// To get user information by userID
+router.get("/:userID", userController.getUser);
+
 module.exports = router;

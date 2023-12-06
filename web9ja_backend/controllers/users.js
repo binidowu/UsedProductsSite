@@ -182,3 +182,37 @@ exports.hasAuthorization = (req, res, next) => {
   }
   next();
 };
+
+
+// Get user information by userID
+exports.getUser = async (req, res, next) => {
+  try {
+    const userId = req.params.userID;s
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: 'User not found',
+      });
+    }
+
+    const data = {
+      id: user._id,
+      username: user.username, 
+      profilePicture: user.profilePicture,
+      email:  user.email,
+      createdAt: user.createdAt,
+    };
+
+    res.status(200).json({
+      success: true,
+      data: data,
+      message: "Done"
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Internal Server Error',
+    });
+  }
+}
