@@ -23,6 +23,6 @@ router.put("/update/:userID", auth.requireSignin, userController.hasAuthorizatio
 router.delete("/delete/:userID", auth.requireSignin, userController.hasAuthorization, userController.deleteUser);
 
 // To get user information by userID
-router.get("/user/:userID", userController.getUser);
+router.get("/:userID", userController.getUser);
 
 module.exports = router;
