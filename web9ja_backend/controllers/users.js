@@ -187,8 +187,9 @@ exports.hasAuthorization = (req, res, next) => {
 // Get user information by userID
 exports.getUser = async (req, res, next) => {
   try {
-    const userId = req.params.userID;s
+    const userId = req.params.userID;
     const user = await User.findById(userId);
+
     if (!user) {
       return res.status(404).json({
         success: false,
