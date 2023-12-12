@@ -8,7 +8,7 @@ require("dotenv").config();
 const myBck = {
   bucketName: process.env.BUCKET_NAME,
   region: process.env.REGION,
-  accessKeyId: process.env.ACCES_KEY_ID,
+  accessKeyId: process.env.ACCESS_KEY_ID,
   secretAccessKey: process.env.SECRET_ACCESS_KEY,
 };
 // setting up the s3 client
