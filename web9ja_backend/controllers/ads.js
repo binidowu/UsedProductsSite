@@ -2,6 +2,7 @@ const { S3Client, PutObjectCommand, DeleteObjectCommand } = require("@aws-sdk/cl
 const crypto = require("crypto");
 let Ad = require("../models/ads");
 let User = require("../models/user");
+require("dotenv").config();
 
 /*
 @ayo, please configure the below credetials with environment variables
@@ -16,10 +17,10 @@ const myBck = {
 and dont forget to include the credetials on render.
  */
 const myBck = {
-  bucketName: "web9jaawsbucket",
-  region: "us-east-2",
-  accessKeyId: "AKIAZUAZY3PWDFYDXA6Z",
-  secretAccessKey: "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",
+  bucketName: env.BUCKET_NAME,
+  region: env.REGION,
+  accessKeyId: env.ACCES_KEY_ID,
+  secretAccessKey: env.SECRET_ACCESS_KEY,
 };
 // setting up the s3 client
 const s3 = new S3Client({
