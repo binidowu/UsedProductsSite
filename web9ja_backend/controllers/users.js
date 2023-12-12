@@ -3,24 +3,13 @@ const crypto = require("crypto");
 
 const User = require("../models/user");
 const Ad = require("../models/ads");
+require("dotenv").config();
 
-/*
-@ayo, please configure the below credetials with environment variables
-dont delete just set the bucket name to the env.variable etc
-e.g
 const myBck = {
-  bucketName: env.BUCKET_NAME,
-  region: env.REGION,
-  accessKeyId: env.ACCESS_KEY_ID,
-  secretAccessKey: env.SECRET_ACCESS_KEY,
-};
-and dont forget to include the credetials on render.
- */
-const myBck = {
-  bucketName: "web9jaawsbucket",
-  region: "us-east-2",
-  accessKeyId: "AKIAZUAZY3PWDFYDXA6Z",
-  secretAccessKey: "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",
+  bucketName: process.env.BUCKET_NAME,
+  region: process.env.REGION,
+  accessKeyId: process.env.ACCES_KEY_ID,
+  secretAccessKey: process.env.SECRET_ACCESS_KEY,
 };
 // setting up the s3 client
 const s3 = new S3Client({
@@ -199,9 +188,9 @@ exports.getUser = async (req, res, next) => {
 
     const data = {
       id: user._id,
-      username: user.username, 
+      username: user.username,
       profilePicture: user.profilePicture,
-      email:  user.email,
+      email: user.email,
       createdAt: user.createdAt,
     };
 
