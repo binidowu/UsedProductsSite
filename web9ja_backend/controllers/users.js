@@ -5,23 +5,11 @@ const User = require("../models/user");
 const Ad = require("../models/ads");
 require("dotenv").config();
 
-/*
-@ayo, please configure the below credetials with environment variables
-dont delete just set the bucket name to the env.variable etc
-e.g
 const myBck = {
-  bucketName: env.BUCKET_NAME,
-  region: env.REGION,
-  accessKeyId: env.ACCESS_KEY_ID,
-  secretAccessKey: env.SECRET_ACCESS_KEY,
-};
-and dont forget to include the credetials on render.
- */
-const myBck = {
-  bucketName: env.BUCKET_NAME,
-  region: env.REGION,
-  accessKeyId: env.ACCES_KEY_ID,
-  secretAccessKey: env.SECRET_ACCESS_KEY,
+  bucketName: process.env.BUCKET_NAME,
+  region: process.env.REGION,
+  accessKeyId: process.env.ACCES_KEY_ID,
+  secretAccessKey: process.env.SECRET_ACCESS_KEY,
 };
 // setting up the s3 client
 const s3 = new S3Client({
