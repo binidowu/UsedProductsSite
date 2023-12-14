@@ -189,8 +189,6 @@ exports.disableAd = async (req, res, next) => {
       { $set: { isActive: !ad.isActive, updatedAt: new Date() } },
       { new: true, runValidators: true } // return the updated document instead of the original and run schema validators
     );
-
-    // Send the updated ad back to the client.
     res.status(200).json({
       success: true,
       message: `Ad ${updatedAd.isActive ? "enabled" : "disabled"} successfully`,
