@@ -178,18 +178,22 @@ exports.disableAd = async (req, res, next) => {
     const adId = req.params.adID;
     const userId = req.auth.id;
 
+    // First, find the ad without considering its active status
+    const ad = await Ad.findOne({ _id: adId, userId: userId });
+
+    if (!ad) throw new Error("Ad not found, are you sure it exists?");
+
+    // Toggle the isActive status
     const updatedAd = await Ad.findOneAndUpdate(
-      { _id: adId, userId: userId, isActive: true }, // Check that the ad is active when trying to disable it
-      { $set: { isActive: false, updatedAt: new Date() } },
+      { _id: adId, userId: userId },
+      { $set: { isActive: !ad.isActive, updatedAt: new Date() } },
       { new: true, runValidators: true } // return the updated document instead of the original and run schema validators
     );
-
-    if (!updatedAd) throw new Error("Ad not disabled, are you sure it exists?");
 
     // Send the updated ad back to the client.
     res.status(200).json({
       success: true,
-      message: "Ad disabled successfully",
+      message: `Ad ${updatedAd.isActive ? "enabled" : "disabled"} successfully`,
       data: updatedAd,
     });
   } catch (error) {
